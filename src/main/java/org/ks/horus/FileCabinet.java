@@ -1,11 +1,9 @@
 package org.ks.horus;
 
-import org.springframework.lang.NonNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class FileCabinet implements Cabinet{
 
@@ -22,7 +20,7 @@ public class FileCabinet implements Cabinet{
     @Override
     public Optional<Folder> findFolderByName(String name) {
         Objects.requireNonNull(name);
-        List<Folder> foldersByName = folders.stream()
+        List<Folder> foldersByName = retrieveAllFolders(folders).stream()
                 .filter(folder -> name.equals(folder.getName()))
                 .toList();
         if (foldersByName.size() > 1){
@@ -41,13 +39,25 @@ public class FileCabinet implements Cabinet{
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Provided size is not SMALL, MEDIUM or LARGE");
         }
-        return folders.stream()
+        return retrieveAllFolders(folders).stream()
                 .filter(folder -> folderSize.equals(folder.getSize()))
                 .toList();
     }
 
     @Override
     public int count() {
-        return folders.size();
+        return retrieveAllFolders(folders).size();
+    }
+
+    private List<Folder> retrieveAllFolders(List<Folder> folders) {
+        List<Folder> folderList = new ArrayList<>();
+        List<Folder> childFolders = Optional.ofNullable(folders)
+                .map(Collection::stream)
+                .filter(folder -> folder instanceof MultiFolder)
+                .map(multiFolder -> retrieveAllFolders(((MultiFolder) multiFolder).getFolders()))
+                .orElseGet(ArrayList::new);
+        folderList.addAll(Optional.ofNullable(folders).orElseGet(ArrayList::new));
+        folderList.addAll(childFolders);
+        return folderList;
     }
 }
