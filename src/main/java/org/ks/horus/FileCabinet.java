@@ -1,14 +1,15 @@
 package org.ks.horus;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
-public class FileCabinet implements Cabinet{
+public class FileCabinet implements Cabinet {
 
     private final List<Folder> folders;
 
     public FileCabinet(List<Folder> folders) {
-        this.folders= Optional.ofNullable(folders)
+        this.folders = Optional.ofNullable(folders)
                 .orElseGet(ArrayList::new)
                 .stream()
                 .filter(Objects::nonNull)
@@ -21,7 +22,7 @@ public class FileCabinet implements Cabinet{
         List<Folder> foldersByName = retrieveAllFolders(folders).stream()
                 .filter(folder -> name.equals(folder.getName()))
                 .toList();
-        if (foldersByName.size() > 1){
+        if (foldersByName.size() > 1) {
             throw new IllegalStateException("More than one folder with the given name was found");
         }
         return foldersByName.stream()
@@ -50,10 +51,11 @@ public class FileCabinet implements Cabinet{
     private List<Folder> retrieveAllFolders(List<Folder> folders) {
         List<Folder> folderList = new ArrayList<>();
         List<Folder> childFolders = Optional.ofNullable(folders)
-                .map(Collection::stream)
+                .orElseGet(ArrayList::new)
+                .stream()
                 .filter(folder -> folder instanceof MultiFolder)
-                .map(multiFolder -> retrieveAllFolders(((MultiFolder) multiFolder).getFolders()))
-                .orElseGet(ArrayList::new);
+                .flatMap(multiFolder -> retrieveAllFolders(((MultiFolder) multiFolder).getFolders()).stream())
+                        .toList();
         folderList.addAll(Optional.ofNullable(folders).orElseGet(ArrayList::new));
         folderList.addAll(childFolders);
         return folderList;
